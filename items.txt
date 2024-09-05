@@ -1,0 +1,56 @@
+ox_inventory -> data -> items.lua
+
+	['stopsign'] = {
+		label = 'Stop Sign',
+		weight = 500,
+		stack = false,
+		close = true,
+	},
+	['walkingmansign'] = {
+		label = 'Walking Man Sign',
+		weight = 500,
+		stack = false,
+		close = true,
+	},
+	['dontblockintersectionsign'] = {
+		label = 'Don\'t Block Intersection Sign',
+		weight = 500,
+		stack = false,
+		close = true,
+	},
+	['uturnsign'] = {
+		label = 'U-Turn Sign',
+		weight = 500,
+		stack = false,
+		close = true,
+	},
+	['noparkingsign'] = {
+		label = 'No Parking Sign',
+		weight = 500,
+		stack = false,
+		close = true,
+	},
+	['leftturnsign'] = {
+		label = 'Left Turn Sign',
+		weight = 500,
+		stack = false,
+		close = true,
+	},
+	['rightturnsign'] = {
+		label = 'Right Turn Sign',
+		weight = 500,
+		stack = false,
+		close = true,
+	},
+	['notrespassingsign'] = {
+		label = 'No Trespassing Sign',
+		weight = 500,
+		stack = false,
+		close = true,
+	},
+	['yieldsign'] = {
+		label = 'Yield Sign',
+		weight = 500,
+		stack = false,
+		close = true,
+	},

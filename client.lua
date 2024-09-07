@@ -75,8 +75,7 @@ end)
 RegisterNetEvent('ejj:addPropToPlayerAndAnim')
 AddEventHandler('ejj:addPropToPlayerAndAnim', function(prop1, bone, off1, off2, off3, rot1, rot2, rot3)
     loadAnimDict("amb@world_human_janitor@male@base")
-    local playerPed = cache.ped
-    local x, y, z = table.unpack(GetEntityCoords(playerPed))
+    local x, y, z = table.unpack(GetEntityCoords(cache.ped))
 
     holdingSign = true
     local TextUI = false
@@ -101,7 +100,7 @@ AddEventHandler('ejj:addPropToPlayerAndAnim', function(prop1, bone, off1, off2, 
         })
         TextUI = true
 
-        ClearPedTasks(playerPed)
+        ClearPedTasks(cache.ped)
 
         CreateThread(function()
             local rotationSpeed = Config.rotationSpeed
@@ -116,8 +115,8 @@ AddEventHandler('ejj:addPropToPlayerAndAnim', function(prop1, bone, off1, off2, 
                 DisableControlAction(0, 31, true)
 
                 local signCoords = GetEntityCoords(prop)
-                local heading = GetEntityHeading(playerPed)
-                local playerCoords = GetEntityCoords(playerPed)
+                local heading = GetEntityHeading(cache.ped)
+                local playerCoords = GetEntityCoords(cache.ped)
 
                 local distance = Vdist(signCoords.x, signCoords.y, signCoords.z, playerCoords.x, playerCoords.y, playerCoords.z)
 

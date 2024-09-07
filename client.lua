@@ -74,7 +74,6 @@ end)
 
 RegisterNetEvent('ejj:addPropToPlayerAndAnim')
 AddEventHandler('ejj:addPropToPlayerAndAnim', function(prop1, bone, off1, off2, off3, rot1, rot2, rot3)
-    loadAnimDict("amb@world_human_janitor@male@base")
     local x, y, z = table.unpack(GetEntityCoords(cache.ped))
 
     holdingSign = true

@@ -109,3 +109,21 @@ AddEventHandler('ejj_stealsigns:hidesignsmodels', function(hash, position)
         print("Hash not found in Config.SignHashes: " .. tostring(hash))
     end
 end)
+
+RegisterNetEvent('ejj_stealsigns:removeitem')
+AddEventHandler('ejj_stealsigns:removeitem', function(propHash)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    
+    local itemName = Config.SignHashes[propHash] 
+
+    if itemName then
+        if Framework == 'esx' then
+            xPlayer.removeInventoryItem(itemName, 1) 
+        elseif Framework == 'qb' then
+            local identifier = xPlayer.identifier
+            exports['qb-inventory']:RemoveItem(identifier, itemName, 1) 
+        end
+    else
+        print("Item name not found for prop hash: " .. propHash)
+    end
+end)

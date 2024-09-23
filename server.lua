@@ -1,3 +1,5 @@
+lib.locale()
+
 local hash = nil
 
 local ESX, QBCore, Framework

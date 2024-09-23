@@ -1,3 +1,5 @@
+lib.locale()
+
 local holdingSign = false
 local prop = nil
 local propPosition = nil
@@ -20,7 +22,7 @@ local options = {}
 
 table.insert(options, {
     icon = "fa-solid fa-sign-hanging",
-    label = Config.Strings.title,
+    label = locale('police_tag'), 
     distance = 3,
     onSelect = function(data)
         local entity = data.entity
@@ -38,7 +40,7 @@ table.insert(options, {
         if success then
             if lib.progressBar({
                 duration = 2000,
-                label = Config.Strings.progressbartitle,
+                label = locale('dialogenter') .. " " .. locale('dialoginput1'), 
                 useWhileDead = false,
                 canCancel = true,
                 disable = {
@@ -54,7 +56,7 @@ table.insert(options, {
                 StopAnimTask(cache.ped, animDict, "base", 1.0)
             end
         else
-            
+            -- Handle failure case if needed
         end
     end
 })
@@ -81,7 +83,7 @@ AddEventHandler('ejj:addPropToPlayerAndAnim', function(prop1, bone, off1, off2, 
 
     if lib.progressCircle({
         duration = Config.progressCircleduration,
-        label = Config.Strings.progressCirclelabel,
+        label = locale('dialogtitle'), 
         position = 'bottom',
         useWhileDead = false,
         canCancel = false,
@@ -93,7 +95,7 @@ AddEventHandler('ejj:addPropToPlayerAndAnim', function(prop1, bone, off1, off2, 
         local prop = CreateObjectNoOffset(prop1, x, y, z + 0.2, true, true, true)
         PlaceObjectOnGroundProperly(prop)
 
-        lib.showTextUI(Config.Strings.TextUI, {
+        lib.showTextUI(locale('dialogenter'), {
             position = "left-center",
             icon = 'sign',
         })
@@ -204,7 +206,7 @@ AddEventHandler('ejj:addPropToPlayerAndAnim', function(prop1, bone, off1, off2, 
             end
         end)
     else
-        
+        -- Handle failure case if needed
     end
 end)
 

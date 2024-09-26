@@ -1,7 +1,7 @@
 {
-    "police_tag": "Sign Interaction",
-    "dialogenter": "Enter Sign",
+    "sign_interact": "Steal Sign",
+    "dialogenter": "**Controls:**  \nW - Forward  \nA - Left  \nS - Backward  \nD - Right  \nQ - Rotate Left  \nE - Rotate Right  \nSpace - Confirm  \nX - Cancel",
     "dialogtitle": "Placing Sign...",
     "dialoginput1": "Please wait while you place the sign.",
-    "TextUI": "Hold to place the sign"
+    "pickingup_sign": "Picking up..."
 }

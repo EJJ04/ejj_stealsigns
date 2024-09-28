@@ -1,164 +1,227 @@
 lib.locale()
 
-local ESX, QBCore = nil, nil
+local holdingSign = false
+local prop = nil
+local propPosition = nil
 
-if GetResourceState('es_extended') == 'started' then
-    ESX = exports['es_extended']:getSharedObject()
-elseif GetResourceState('qb-core') == 'started' then
-    QBCore = exports['qb-core']:GetCoreObject()
-end
-
-local speedZones = {}
-
-RegisterNetEvent('ejj_trafficcontrol:createSpeedZoneClient', function(coords, radius, speed)
-    local zone = {
-        id = AddRoadNodeSpeedZone(coords.x, coords.y, coords.z, radius + 0.0, speed + 0.0, false),  
-        coords = {x = coords.x, y = coords.y, z = coords.z}  
-    }
-    
-    local blip = AddBlipForRadius(coords.x, coords.y, coords.z, radius + 0.0)  
-    SetBlipColour(blip, Config.TrafficBlip.color)
-    SetBlipSprite(blip, Config.TrafficBlip.sprite)
-    SetBlipAlpha(blip, 80)
-    SetBlipDisplay(blip, 6)
-
-    local streetName = GetStreetNameAtCoord(coords.x, coords.y, coords.z)
-    local formattedStreetName = GetStreetNameFromHashKey(streetName)
-
-    TriggerEvent('chat:addMessage', {
-        template = '<div style="padding: 0.5vw; margin: 0.05vw; background-color: rgba({1}, {2}, {3}, {4}); border-radius: 3px;"> <b>' .. locale('police_tag') .. ' @</b><br> ' .. locale('traffic_warning') .. ' <b>{5}</b> ' .. locale('caution_message') .. '</div>',
-        args = { '', Config.TrafficWarningColor.r, Config.TrafficWarningColor.g, Config.TrafficWarningColor.b, Config.TrafficWarningColor.a, formattedStreetName }
-    })
-
-    table.insert(speedZones, {zone = zone, blip = blip})  
-end)
-
-RegisterNetEvent('ejj_trafficcontrol:deleteSpeedZoneClient', function(zoneIndex)
-    if speedZones[zoneIndex] then
-        local zone = speedZones[zoneIndex]
-        if RemoveRoadNodeSpeedZone(zone.zone.id) then  
-            RemoveBlip(zone.blip)
-            table.remove(speedZones, zoneIndex)
-        end
+local function loadAnimDict(dict)
+    while not HasAnimDictLoaded(dict) do
+        RequestAnimDict(dict)
+        Citizen.Wait(1)
     end
-end)
-
-RegisterNetEvent('ejj_trafficcontrol:deleteSpeedZoneNotify', function()
-    lib.notify({
-        title = locale('zone_removed_title'),
-        description = locale('zone_removed_description'),
-        type = 'success',
-        position = Config.NotifySettings.position,
-    })
-end)
-
-RegisterNetEvent('ejj_trafficcontrol:deleteSpeedZoneErrorNotify', function()
-    lib.notify({
-        title = locale('error_title'),
-        description = locale('error_description'),
-        type = 'error',
-        position = Config.NotifySettings.position,
-    })
-end)
-
-function OpenTrafficMenu()
-    lib.registerContext({
-        id = 'ejj_trafficcontrol:stoptrafik1',
-        title = locale('traffic_control_title'),
-        options = {
-            {
-                title = locale('stop_traffic_title'),
-                icon = 'fa-solid fa-traffic-light',
-                onSelect = function()
-                    local input = lib.inputDialog(locale('stop_traffic_dialog_title'), {
-                        {type = 'number', label = locale('zone_diameter_label'), required = true}
-                    })
-
-                    if input then
-                        local radius = tonumber(input[1]) + 0.0  
-                        local playerCoords = GetEntityCoords(cache.ped)
-
-                        TriggerServerEvent('ejj_trafficcontrol:createSpeedZone', playerCoords, radius, 0)
-                    end
-                end
-            },
-            {
-                title = locale('slow_traffic_title'),
-                icon = 'fa-solid fa-traffic-light',
-                onSelect = function()
-                    local input = lib.inputDialog(locale('slow_traffic_dialog_title'), {
-                        {type = 'number', label = locale('zone_diameter_label'), required = true},
-                        {type = 'number', label = locale('speed_label'), required = true}
-                    })
-
-                    if input then
-                        local radius = tonumber(input[1]) + 0.0  
-                        local speed = tonumber(input[2]) + 0.0  
-                        local playerCoords = GetEntityCoords(cache.ped)
-                        TriggerServerEvent('ejj_trafficcontrol:createSpeedZone', playerCoords, radius, speed)
-                    end
-                end
-            },
-            {
-                title = locale('reset_zone_title'),
-                icon = 'fa-solid fa-power-off',
-                onSelect = function()
-                    local playerCoords = GetEntityCoords(cache.ped)
-                    local zoneIndex = nil
-
-                    for index, zone in ipairs(speedZones) do
-                        if IsPointInZone(playerCoords, zone) then
-                            zoneIndex = index
-                            break
-                        end
-                    end
-
-                    if zoneIndex then
-                        TriggerServerEvent('ejj_trafficcontrol:deleteSpeedZone', zoneIndex)
-                    else
-                        lib.notify({
-                            title = locale('no_zones_title'),
-                            description = locale('no_zones_description'),
-                            type = 'error',
-                            position = Config.NotifySettings.position,
-                        })
-                    end
-                end
-            },
-        }
-    })
-
-    lib.showContext('ejj_trafficcontrol:stoptrafik1')
 end
 
-function IsPointInZone(coords, zone)
-    local zoneCoords = zone.zone.coords  
-    local radius = zone.zone.radius or 10.0  
-    return Vdist(coords.x, coords.y, coords.z, zoneCoords.x, zoneCoords.y, zoneCoords.z) <= radius
+local function LoadPropDict(model)
+    while not HasModelLoaded(GetHashKey(model)) do
+        RequestModel(GetHashKey(model))
+        Wait(10)
+    end
 end
 
-RegisterNetEvent("esx:setJob")
-AddEventHandler("esx:setJob", function(job)
-    ESX.PlayerData.job = job
-end)
+local options = {}
 
-RegisterCommand(Config.TrafficControlCommand.CommandName, function()
-    if Config.UseJob then
-        if ESX then
-            if ESX.PlayerData.job and ESX.PlayerData.job.name == Config.PoliceJob.JobName and not ESX.PlayerData.dead then 
-                OpenTrafficMenu()
-            end
-        elseif QBCore then
-            local PlayerData = QBCore.Functions.GetPlayerData()
-            if PlayerData.job and PlayerData.job.name == Config.PoliceJob.JobName then
-                OpenTrafficMenu()
+table.insert(options, {
+    icon = "fa-solid fa-sign-hanging",
+    label = locale('sign_interact'), 
+    distance = 3,
+    onSelect = function(data)
+        local entity = data.entity
+        local hash = GetEntityModel(entity)
+        local position = GetEntityCoords(entity)
+        
+        SetEntityAsMissionEntity(entity, true, true)
+
+        local animDict = "amb@prop_human_bum_bin@base"
+        loadAnimDict(animDict)
+        TaskPlayAnim(cache.ped, animDict, "base", 8.0, -8.0, -1, 49, 0, false, false, false)
+        
+        local success = lib.skillCheck({'easy', 'easy', {areaSize = 60, speedMultiplier = 1}, 'easy'}, {'e', 'e', 'e', 'e'})
+        
+        if success then
+            if lib.progressBar({
+                duration = 2000,
+                label = locale('pickingup_sign'), 
+                useWhileDead = false,
+                canCancel = true,
+                disable = {
+                    car = true,
+                    move = true,
+                },
+            }) then
+                ClearPedTasks(cache.ped)
+                CreateModelHide(position, 3.0, hash, true)
+                TriggerServerEvent('ejj_stealsigns:hidesignsmodels', hash, position)
+            else
+                ClearPedTasks(cache.ped)
             end
         else
-            print("Error: Neither ESX nor QBCore is detected.")
+            -- Handle failure case if needed
         end
+    end
+})
+
+local signHashes = {}
+
+for hash, _ in pairs(Config.SignHashes) do
+    table.insert(signHashes, hash)
+end
+
+exports.ox_target:addModel(signHashes, options)
+
+RegisterNetEvent('ejj_stealsigns:hidesignsmodels2')
+AddEventHandler('ejj_stealsigns:hidesignsmodels2', function(hash, position, propPosition)
+    CreateModelHideExcludingScriptObjects(position, 3.0, hash, true)
+end)
+
+RegisterNetEvent('ejj:addPropToPlayerAndAnim')
+AddEventHandler('ejj:addPropToPlayerAndAnim', function(prop1, bone, off1, off2, off3, rot1, rot2, rot3)
+    local x, y, z = table.unpack(GetEntityCoords(cache.ped))
+
+    holdingSign = true
+    local TextUI = false
+
+    if lib.progressCircle({
+        duration = Config.progressCircleduration,
+        label = locale('dialogtitle'), 
+        position = 'bottom',
+        useWhileDead = false,
+        canCancel = false,
+        disable = {
+            car = true,
+            move = true,
+        },
+    }) then
+        local prop = CreateObjectNoOffset(prop1, x, y, z + 0.2, true, true, true)
+        PlaceObjectOnGroundProperly(prop)
+
+        lib.showTextUI(locale('dialogenter'), {
+            position = "left-center",
+            icon = 'sign',
+        })
+        TextUI = true
+
+        ClearPedTasks(cache.ped)
+
+        CreateThread(function()
+            local rotationSpeed = Config.rotationSpeed
+            local moveSpeed = Config.moveSpeed
+            local maxDistance = Config.maxDistance
+            local originalCoords = GetEntityCoords(cache.ped) 
+            local rotation = GetEntityHeading(prop)
+
+            while holdingSign do
+                Wait(0)
+
+                DisableControlAction(0, 30, true)
+                DisableControlAction(0, 31, true) 
+
+                local signCoords = GetEntityCoords(prop)
+                local distanceFromOriginal = Vdist(signCoords.x, signCoords.y, signCoords.z, originalCoords.x, originalCoords.y, originalCoords.z)
+
+                if distanceFromOriginal < maxDistance then
+                    if IsControlPressed(0, 32) then 
+                        local heading = GetEntityHeading(cache.ped)
+                        local newCoords = vector3(signCoords.x + moveSpeed * math.sin(math.rad(heading)), signCoords.y + moveSpeed * math.cos(math.rad(heading)), signCoords.z)
+
+                        if Vdist(newCoords.x, newCoords.y, newCoords.z, originalCoords.x, originalCoords.y, originalCoords.z) <= maxDistance then
+                            SetEntityCoords(prop, newCoords.x, newCoords.y, newCoords.z, true, false, false, true)
+                        end
+                    end
+                end
+
+                if IsControlPressed(0, 33) then 
+                    if distanceFromOriginal > 0 then 
+                        local heading = GetEntityHeading(cache.ped)
+                        local moveBackCoords = vector3(signCoords.x - moveSpeed * math.sin(math.rad(heading)), signCoords.y - moveSpeed * math.cos(math.rad(heading)), signCoords.z)
+
+                        if Vdist(moveBackCoords.x, moveBackCoords.y, moveBackCoords.z, originalCoords.x, originalCoords.y, originalCoords.z) <= maxDistance then
+                            SetEntityCoords(prop, moveBackCoords.x, moveBackCoords.y, moveBackCoords.z, true, false, false, true)
+                        end
+                    end
+                end
+
+                if IsControlPressed(0, 34) then 
+                    local newCoords = vector3(signCoords.x - moveSpeed * math.cos(math.rad(GetEntityHeading(cache.ped))), signCoords.y + moveSpeed * math.sin(math.rad(GetEntityHeading(cache.ped))), signCoords.z)
+
+                    if Vdist(newCoords.x, newCoords.y, newCoords.z, originalCoords.x, originalCoords.y, originalCoords.z) <= maxDistance then
+                        SetEntityCoords(prop, newCoords.x, newCoords.y, newCoords.z, true, false, false, true)
+                    end
+                end
+
+                if IsControlPressed(0, 35) then 
+                    local newCoords = vector3(signCoords.x + moveSpeed * math.cos(math.rad(GetEntityHeading(cache.ped))), signCoords.y - moveSpeed * math.sin(math.rad(GetEntityHeading(cache.ped))), signCoords.z)
+
+                    if Vdist(newCoords.x, newCoords.y, newCoords.z, originalCoords.x, originalCoords.y, originalCoords.z) <= maxDistance then
+                        SetEntityCoords(prop, newCoords.x, newCoords.y, newCoords.z, true, false, false, true)
+                    end
+                end
+
+                PlaceObjectOnGroundProperly(prop)
+
+                if IsControlPressed(0, 44) then 
+                    rotation = rotation - rotationSpeed
+                end
+                if IsControlPressed(0, 46) then 
+                    rotation = rotation + rotationSpeed
+                end
+
+                SetEntityHeading(prop, rotation)
+
+                if IsControlJustPressed(0, 73) then 
+                    if TextUI then
+                        lib.hideTextUI()
+                        TextUI = false
+                    end
+                    if prop then
+                        DeleteEntity(prop)
+                    end
+                    holdingSign = false
+                    break
+                end
+
+                if IsControlJustPressed(0, 22) then
+                    local finalCoords = GetEntityCoords(prop)
+                    local finalHeading = GetEntityHeading(prop)
+                    
+                    local placedProp = CreateObjectNoOffset(prop1, finalCoords.x, finalCoords.y, finalCoords.z, true, true, true)
+                    PlaceObjectOnGroundProperly(placedProp)
+                    SetEntityHeading(placedProp, finalHeading)
+                
+                    TriggerServerEvent('ejj_stealsigns:removeitem', prop1)
+                
+                    if TextUI then
+                        lib.hideTextUI()
+                        TextUI = false
+                    end
+                
+                    holdingSign = false
+                    break
+                end
+            end
+
+            if not holdingSign and prop then
+                DeleteEntity(prop)
+                if TextUI then
+                    lib.hideTextUI()
+                    TextUI = false
+                end
+            end
+        end)
     else
-        OpenTrafficMenu()
+        -- Handle failure case if needed
     end
 end)
 
-exports('OpenTrafficMenu', OpenTrafficMenu)
+
+AddEventHandler("onResourceStop", function(resource)
+    if resource == GetCurrentResourceName() then
+        if prop then
+            DeleteEntity(prop)
+            holdingSign = false
+        end
+        local isOpen, text = lib.isTextUIOpen()
+        if isOpen then
+            lib.hideTextUI()
+        end
+    end
+end)

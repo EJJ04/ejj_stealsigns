@@ -34,11 +34,11 @@ table.insert(options, {
         local animDict = "amb@prop_human_bum_bin@base"
         loadAnimDict(animDict)
         TaskPlayAnim(cache.ped, animDict, "base", 8.0, -8.0, -1, 49, 0, false, false, false)
-        
+
         local success = lib.skillCheck({'easy', 'easy', {areaSize = 60, speedMultiplier = 1}, 'easy'}, {'e', 'e', 'e', 'e'})
-        
+
         if success then
-            if lib.progressBar({
+            lib.progressBar({
                 duration = 2000,
                 label = locale('pickingup_sign'), 
                 useWhileDead = false,
@@ -47,15 +47,13 @@ table.insert(options, {
                     car = true,
                     move = true,
                 },
-            }) then
-                ClearPedTasks(cache.ped)
-                CreateModelHide(position, 3.0, hash, true)
-                TriggerServerEvent('ejj_stealsigns:hidesignsmodels', hash, position)
-            else
-                ClearPedTasks(cache.ped)
-            end
+            })
+
+            ClearPedTasks(cache.ped)
+            CreateModelHide(position, 3.0, hash, true)
+            TriggerServerEvent('ejj_stealsigns:hidesignsmodels', hash, position)
         else
-            -- Handle failure case if needed
+            ClearPedTasks(cache.ped)
         end
     end
 })
